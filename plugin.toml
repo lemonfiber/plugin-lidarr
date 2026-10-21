@@ -37,6 +37,9 @@ capability = "download.usenet"
 [[ask]]
 capability = "download.torrent"
 
+[[ask]]
+capability = "dashboard.show"
+
 [[claim]]
 capability = "library.curate"
 
