@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   plugin:
-    uses: lemonfiber/spec/.github/workflows/first-party-plugin.yml@e745e0f7f79f5f2e76b68e560b1c28e1df956493 # v1.0.103
+    uses: lemonfiber/spec/.github/workflows/first-party-plugin.yml@1fdd64612bc6cb95be0d5602fcd55f308c5d505f # v1.0.107
 
   # Every conformance recording is what the adapter answers now, in front of
   # the pinned Lidarr. It starts a throwaway Lidarr at that digest,
