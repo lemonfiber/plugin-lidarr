@@ -1,0 +1,17 @@
+# What this repository implements, one row per requirement (OPS-R74).
+#
+# `done` means the requirement is met in full by what is here, `partial` that this
+# repository holds its part and the rest lives elsewhere, `open` that nothing here
+# meets it yet. The release gate and the no-stubs gate read this file; a pull
+# request that changes whether a requirement is met changes its row.
+#
+# Writing the adapter's key and its upstream's credential, running it as the operator,
+# and embedding this plugin in the default bundle are the core's.
+
+requirement = [
+  { id = "F14-R6", state = "partial", evidence = ["src/adapter.rs", "tests/conformance.rs::every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_reads_it"] },
+  { id = "F14-R13", state = "partial", evidence = ["src/adapter.rs", "tests/conformance.rs::the_adapter_names_the_release_and_digest_its_recordings_were_taken_from"] },
+  { id = "F14-R15", state = "partial", evidence = ["Cargo.toml", "Dockerfile", ".github/workflows/release.yml"] },
+  { id = "F14-R27", state = "partial", evidence = ["Dockerfile", ".github/workflows/adapter.yml"] },
+  { id = "F14-R28", state = "partial", evidence = ["src/main.rs", "src/adapter.rs"] },
+]

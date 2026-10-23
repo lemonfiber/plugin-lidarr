@@ -1,0 +1,360 @@
+# Publish the adapter's image from a tag the release train cut, and from every
+# commit on main (ADR-0033 §3, ADR-0042 §7, OPS-R90), and propose the digest it
+# published to this plugin's manifest (OPS-R91).
+#
+# Two things publish. A tag `vX.Y.Z`, or `vX.Y.Z-<identifier>` for a
+# pre-release, on a commit `main` holds, publishes under that tag. Every commit
+# on `main` publishes under `main-<first 12 of the commit>`; that is a pinned
+# build of `main`, not a release, and nothing announces it. Either way each
+# platform is built on a runner of its own architecture and pushed by digest;
+# the two are joined under one multi-architecture index at the image the
+# manifest's adapter service names, `ghcr.io/lemonfiber/<crate>:<tag>`, which
+# carries BuildKit's SBOM and provenance, and gets a build-provenance
+# attestation and an SBOM attestation per platform from GitHub.
+#
+# The manifest names the adapter by digest, so the digest reaches it after the
+# publish: `pin` updates one rolling pull request on this repository setting the
+# adapter service's `digest` and `tag`. A tag's pin is on `release/adapter-pin`,
+# and the bundle in lemonfiber-plugins pins the manifest that pull request
+# merges. A commit's pin is on `release/adapter-commit-pin`, which moves the
+# manifest and never the bundle. The merge of either pin publishes like any
+# other commit and pins nothing, or every pin would beget another.
+name: release
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/lemonfiber
+  BUILDKIT: moby/buildkit:v0.33.1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+  SBOM_SCANNER: docker/buildkit-syft-scanner:1.12.0@sha256:ae4f3b554449e7e25548e7d8ccc029d17357348e30c6e3df01b92bc93654d6a9
+  # The rolling branch a tag's pin keeps its one pull request on, which the
+  # bundle follows.
+  TAG_PIN_BRANCH: release/adapter-pin
+  # The rolling branch a commit's pin keeps its one pull request on, which the
+  # bundle does not follow.
+  COMMIT_PIN_BRANCH: release/adapter-commit-pin
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.what.outputs.image }}
+      tag: ${{ steps.what.outputs.tag }}
+      pin: ${{ steps.what.outputs.pin }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: A tag the train cuts, on main, at the version the crate declares; or a commit on main
+        id: what
+        env:
+          KIND: ${{ github.ref_type }}
+          REF: ${{ github.ref }}
+          NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$KIND" = branch ]; then
+            [ "$REF" = refs/heads/main ] || { echo "::error::${REF} is not main, and no other branch publishes"; exit 1; }
+            TAG="main-${GITHUB_SHA:0:12}"
+            PIN="$COMMIT_PIN_BRANCH"
+          else
+            TAG="$NAME"
+            PIN="$TAG_PIN_BRANCH"
+            if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]] \
+              || [[ "$TAG" =~ ^v[0-9.]+-rc[0-9]*(\.|$) ]]; then
+              echo "::error::'${TAG}' is not a tag the train cuts: vX.Y.Z, or vX.Y.Z-<identifier> other than rc"
+              exit 1
+            fi
+            git fetch --quiet origin main
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::${TAG} points at ${GITHUB_SHA}, which main does not hold"
+              exit 1
+            fi
+          fi
+
+          python3 - "$TAG" "$REGISTRY" "$KIND" "$PIN" <<'PY'
+          import os, sys, tomllib
+          tag, registry, kind, pin = sys.argv[1:5]
+          crate = tomllib.load(open("Cargo.toml", "rb"))["package"]
+          tagged = kind == "tag"
+          if tagged and f"v{crate['version']}" != tag:
+              sys.exit(f"::error::the crate declares {crate['version']}, so it is not tagged {tag}")
+          image = f"{registry}/{crate['name']}"
+          manifest = tomllib.load(open("plugin.toml", "rb"))
+          adapters = [one for one in manifest.get("service", []) if one.get("speaks")]
+          if adapters:
+              if tagged and manifest["plugin"]["version"] != crate["version"]:
+                  sys.exit(f"::error::the manifest declares {manifest['plugin']['version']}, so it is not tagged {tag}")
+              if [one["image"] for one in adapters] != [image]:
+                  sys.exit(f"::error::the manifest's adapter service does not name {image}")
+          else:
+              print(f"::notice::plugin.toml declares no adapter service yet, so nothing will pin {image}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"image={image}\ntag={tag}\npin={pin}\n")
+          print(f"publishing {image}:{tag}")
+          PY
+
+  build:
+    needs: settle
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build on this platform and push by digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          IMAGE: ${{ needs.settle.outputs.image }}
+          TAG: ${{ needs.settle.outputs.tag }}
+          PLATFORM: ${{ matrix.platform }}
+          SOURCE: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+          docker buildx create --use --driver docker-container --driver-opt "image=${BUILDKIT}" >/dev/null
+          docker buildx build . \
+            --platform "$PLATFORM" \
+            --label "org.opencontainers.image.source=${SOURCE}" \
+            --label "org.opencontainers.image.version=${TAG#v}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --provenance mode=max \
+            --attest "type=sbom,generator=${SBOM_SCANNER}" \
+            --output "type=image,name=${IMAGE},push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file metadata.json
+          digest="$(python3 -c 'import json; print(json.load(open("metadata.json"))["containerimage.digest"])')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            || { echo "::error::the build reported no digest: '${digest}'"; exit 1; }
+          mkdir -p digests
+          touch "digests/${digest#sha256:}"
+          echo "${PLATFORM} pushed as ${digest}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: digest-${{ matrix.runner }}
+          path: digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: [settle, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.index.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
+      - name: Join the platforms under one index, tagged
+        id: index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          IMAGE: ${{ needs.settle.outputs.image }}
+          TAG: ${{ needs.settle.outputs.tag }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+          sources=()
+          for file in digests/*; do
+            sources+=("${IMAGE}@sha256:$(basename "$file")")
+          done
+          [ "${#sources[@]}" -eq 2 ] || { echo "::error::expected two platform digests, got ${#sources[@]}"; exit 1; }
+          docker buildx imagetools create --tag "${IMAGE}:${TAG}" "${sources[@]}"
+
+          docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{json .Manifest}}' > descriptor.json
+          digest="$(python3 -c 'import json; print(json.load(open("descriptor.json"))["digest"])')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] \
+            || { echo "::error::the registry named no index digest: '${digest}'"; exit 1; }
+          docker buildx imagetools inspect --raw "${IMAGE}@${digest}" > index.json
+          python3 - "$digest" <<'PY'
+          import json, os, sys
+          index = json.load(open("index.json"))
+          found = {
+              f"{m['platform']['os']}/{m['platform']['architecture']}": m["digest"]
+              for m in index.get("manifests", [])
+              if m.get("platform", {}).get("os") not in (None, "unknown")
+          }
+          missing = {"linux/amd64", "linux/arm64"} - set(found)
+          if missing:
+              sys.exit(f"::error::the index does not publish {', '.join(sorted(missing))}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"digest={sys.argv[1]}\n")
+              out.write(f"amd64={found['linux/amd64']}\n")
+              out.write(f"arm64={found['linux/arm64']}\n")
+          PY
+          for arch in amd64 arm64; do
+            docker buildx imagetools inspect "${IMAGE}:${TAG}" \
+              --format "{{ json (index .SBOM \"linux/${arch}\").SPDX }}" > "sbom-${arch}.spdx.json"
+          done
+          {
+            echo "## ${IMAGE}:${TAG}"
+            echo
+            echo "Index digest: \`${digest}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "published ${IMAGE}:${TAG} as ${digest}"
+      - name: Attest the index's build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ needs.settle.outputs.image }}
+          subject-digest: ${{ steps.index.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest the linux/amd64 image's SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ needs.settle.outputs.image }}
+          subject-digest: ${{ steps.index.outputs.amd64 }}
+          sbom-path: sbom-amd64.spdx.json
+          push-to-registry: true
+          create-storage-record: false
+      - name: Attest the linux/arm64 image's SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ needs.settle.outputs.image }}
+          subject-digest: ${{ steps.index.outputs.arm64 }}
+          sbom-path: sbom-arm64.spdx.json
+          push-to-registry: true
+          create-storage-record: false
+
+  # The key that writes to this repository is held behind the `release`
+  # environment, whose branch policy admits main and `v*` tags only.
+  pin:
+    needs: [settle, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    outputs:
+      branch: ${{ steps.pinned.outputs.branch }}
+      head: ${{ steps.pinned.outputs.head }}
+      title: ${{ steps.pinned.outputs.title }}
+      body: ${{ steps.pinned.outputs.body }}
+    steps:
+      - name: Mint a token that can write the manifest
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: write
+          permission-pull-requests: write
+          repositories: ${{ github.event.repository.name }}
+      - name: Put what this tag or commit published on its rolling branch
+        id: pinned
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          REPOSITORY: ${{ github.repository }}
+          TAG: ${{ needs.settle.outputs.tag }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
+          PIN_BRANCH: ${{ needs.settle.outputs.pin }}
+          BOT: ${{ steps.token.outputs.app-slug }}[bot]
+        run: |
+          set -euo pipefail
+          # The merge of a pin is published like any commit and pins nothing:
+          # pinning it would open the next pin, and so on for ever.
+          pins="$(gh api "repos/${REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq "map(select(
+            .merged_at != null and .merge_commit_sha == \"${GITHUB_SHA}\"
+            and (.head.ref == \"${TAG_PIN_BRANCH}\" or .head.ref == \"${COMMIT_PIN_BRANCH}\")
+            and .head.repo.full_name == \"${REPOSITORY}\" and .user.login == \"${BOT}\")) | length")"
+          if [ "$pins" != "0" ]; then
+            echo "::notice::${GITHUB_SHA} merges a pin, so ${TAG} is published and not pinned."
+            exit 0
+          fi
+          main="$(gh api "repos/${REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          if gh api "repos/${REPOSITORY}/git/ref/heads/${PIN_BRANCH}" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${REPOSITORY}/git/refs/heads/${PIN_BRANCH}" \
+              -f "sha=${main}" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/${REPOSITORY}/git/refs" \
+              -f "ref=refs/heads/${PIN_BRANCH}" -f "sha=${main}" >/dev/null
+          fi
+          gh api "repos/${REPOSITORY}/contents/plugin.toml?ref=${PIN_BRANCH}" > held.json
+          if ! python3 -c 'import base64, json, sys; text = base64.b64decode(json.load(open("held.json"))["content"]).decode(); sys.exit(0 if "\nspeaks" in text else 1)'; then
+            echo "::notice::plugin.toml declares no adapter service, so there is nothing to pin."
+            exit 0
+          fi
+          python3 - "$DIGEST" "$TAG" <<'PY'
+          import base64, json, re, sys
+          digest, tag = sys.argv[1], sys.argv[2].removeprefix("v")
+          text = base64.b64decode(json.load(open("held.json"))["content"]).decode("utf-8")
+          blocks = re.split(r"(?m)^(?=\[\[?)", text)
+          adapters = [i for i, block in enumerate(blocks)
+                      if block.startswith("[[service]]") and re.search(r"(?m)^speaks\s*=", block)]
+          if len(adapters) != 1:
+              sys.exit("::error::the manifest does not declare exactly one adapter service")
+          at = adapters[0]
+          block = blocks[at]
+          for field, value in (("digest", digest), ("tag", tag)):
+              block, changed = re.subn(rf'(?m)^{field}(\s*)=\s*"[^"]*"', rf'{field}\g<1>= "{value}"', block)
+              if changed != 1:
+                  sys.exit(f"::error::the adapter service does not declare `{field}` once")
+          blocks[at] = block
+          open("plugin.toml", "w", encoding="utf-8").write("".join(blocks))
+          PY
+          message="$(printf '%s\n\n%s\n%s\n' \
+            "chore(manifest): the adapter at ${TAG}" \
+            "Spec: F14-R15, OPS-R91" \
+            "Signed-off-by: lemonfiber release <info@nightworks.io>")"
+          head="$(gh api --method PUT "repos/${REPOSITORY}/contents/plugin.toml" \
+            -f "message=${message}" \
+            -f "content=$(base64 -w0 plugin.toml)" \
+            -f "sha=$(python3 -c 'import json; print(json.load(open("held.json"))["sha"])')" \
+            -f "branch=${PIN_BRANCH}" --jq .commit.sha)"
+          # Handed to the next job, which opens or edits the pull request. The
+          # delimiter is random, so no line of the body can end the value.
+          delimiter="body_$(openssl rand -hex 16)"
+          {
+            echo "branch=${PIN_BRANCH}"
+            echo "head=${head}"
+            echo "title=chore(manifest): the adapter at ${TAG}"
+            echo "body<<${delimiter}"
+            printf '%s\n\n%s\n\n%s\n' \
+              "The adapter service in plugin.toml runs the image ${TAG} published, at ${DIGEST}." \
+              "Spec: F14-R15, OPS-R91" \
+              "Signed-off-by: lemonfiber release <info@nightworks.io>"
+            echo "${delimiter}"
+          } >> "$GITHUB_OUTPUT"
+          echo "the manifest's adapter is proposed at ${TAG}, ${DIGEST}."
+
+  # The pull request is opened, or the open one edited, only where it is this
+  # workflow's own: the release app opened it from this repository's branch and
+  # it is at the commit above (OPS-R87).
+  pull-request:
+    needs: pin
+    if: needs.pin.outputs.head != ''
+    permissions:
+      contents: read
+    uses: lemonfiber/spec/.github/workflows/rolling-pull-request.yml@e745e0f7f79f5f2e76b68e560b1c28e1df956493 # v1.0.103
+    with:
+      branch: ${{ needs.pin.outputs.branch }}
+      head: ${{ needs.pin.outputs.head }}
+      title: ${{ needs.pin.outputs.title }}
+      body: ${{ needs.pin.outputs.body }}
+    secrets:
+      RELEASE_APP_KEY: ${{ secrets.RELEASE_APP_KEY }}
