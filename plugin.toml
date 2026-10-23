@@ -24,33 +24,70 @@ criticality = "core"
 memory_mib  = 300
 reaches     = "music metadata providers"
 asks_for    = "Reads artist, album and track information for the music in your library."
-provides    = ["library.curate"]
-api         = { kind = "servarr", key_source = "config-xml", path = "/config/config.xml", version = 1 }
 takes_data  = true
 user_mode   = "puid-env"
 media_types = ["music"]
+native      = "servarr"
 replaces    = "lidarr"
 
+[service.env]
+LIDARR__AUTH__APIKEY = { secret = "upstream-key" }
+
+[[service]]
+id          = "lidarr-adapter"
+name        = "Lidarr adapter"
+image       = "ghcr.io/lemonfiber/lidarr-adapter"
+digest      = "sha256:7c5ea0e7e60d5b7d208961cd3426739298818fac702abbf2ef6cefe9203c4b38"
+tag         = "main-1616340ecf9d"
+criticality = "core"
+reaches     = ""
+asks_for    = "Nothing beyond this machine. It answers lemonfiber's library.curate contract by calling Lidarr, beside it, with the key lemonfiber minted for it."
+config_path = "/config"
+listens     = 8080
+speaks      = ["library.curate@1"]
+fronts      = "lidarr"
+provides    = ["library.curate"]
+upstream    = { api_key = { secret = "upstream-key" } }
+
+[[secret]]
+id     = "upstream-key"
+of     = "lidarr"
+minted = true
+why    = "The key Lidarr answers its API to, which the adapter in front of it presents"
+
+[[proof]]
+id      = "lidarr.answers"
+service = "lidarr"
+title   = "Lidarr says it answers to anybody"
+fixture = "recordings/lidarr/ping-answers.json"
+why     = """
+The adapter's readiness is this answer, which it asks without a key, so the
+pinned image has to give it to a caller presenting nothing.
+"""
+request = { method = "GET", path = "/ping" }
+expect  = { status = 200, json = { status = "OK" } }
+
+[[proof]]
+id      = "lidarr.guarded"
+service = "lidarr"
+title   = "Lidarr shows what it wants to nobody presenting nothing"
+fixture = "recordings/lidarr/wanted-guarded.json"
+why     = """
+What Lidarr wants names what the household listens to. Only the adapter asks, with
+the key lemonfiber minted, so a Lidarr that answered it to a caller presenting
+nothing would be telling every device that can reach it.
+"""
+request = { method = "GET", path = "/api/v1/wanted/missing" }
+expect  = { status = 401 }
+
 [[ask]]
+service    = "lidarr"
 capability = "download.usenet"
 
 [[ask]]
+service    = "lidarr"
 capability = "download.torrent"
 
 [[ask]]
+service    = "lidarr"
 capability = "dashboard.show"
-
-[[claim]]
-capability = "library.curate"
-
-[[claim.probe]]
-id      = "guarded"
-request = { method = "GET", path = "/api/v1/wanted/missing" }
-expect  = { status = 401 }
-fixture = "recordings/lidarr/library-curate-guarded.json"
-
-[[claim.probe]]
-id      = "wanted"
-request = { method = "GET", path = "/api/v1/wanted/missing" }
-expect  = { status = 200, json_types = { records = "list", totalRecords = "int" } }
-fixture = "recordings/lidarr/library-curate-wanted.json"

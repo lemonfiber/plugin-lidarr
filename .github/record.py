@@ -16,13 +16,15 @@ being downloaded. The adapter runs from this repository's Dockerfile, as
 lemonfiber runs it: the caller's uid, read-only, no capabilities, the key and
 the upstream credential owner-only in its configuration directory.
 
-This script stands where lemonfiber stands: it mints the service's API key as
-32 lowercase hex characters, hands it to the service through its environment,
-and writes it to the adapter's `upstream.json` beside `lemonfiber.key`. The
-cases asked are every case bound to no media type and every one bound to a
-media type the service files, as `plugin.toml` declares them, and a recording
-left from a case no longer asked is removed. A run whose answers hold the key,
-the API key or a credential the run minted writes nothing.
+This script stands where lemonfiber stands: it mints the service's API key as 32
+lowercase hex characters, hands it to the service through the environment
+variables `plugin.toml`'s `env` names it in, valued in the docker client's own
+environment and never on a command line or on disk, and writes it to the
+adapter's `upstream.json` beside `lemonfiber.key`. The cases asked are every
+case bound to no media type and every one bound to a media type the service
+files, as `plugin.toml` declares them, and a recording left from a case no
+longer asked is removed. A run whose answers hold the key, the API key or a
+credential the run minted writes nothing.
 
     python3 .github/record.py            write conformance/
     python3 .github/record.py --check    record again and compare
@@ -53,6 +55,8 @@ RECORDINGS = ROOT / "conformance"
 CONTRACTS = "https://raw.githubusercontent.com/lemonfiber/lemonfiber/{rev}/contract/capabilities/{capability}/v{major}/conformance.json"
 JSON = "application/json"
 STARTUP_S = 180
+PULLS = 5
+PULL_WAIT_S = 10
 ANSWER_S = 60
 ADAPTER_PORT = 8080
 SEGMENT = re.compile(r"[a-z][a-z0-9_.]*")
@@ -63,6 +67,8 @@ MINTED = "minted"
 UPSTREAM = "upstream:"
 API_KEY = "api_key"
 DATA_FOLDER = "conformance"
+MINTED_KEY = "upstream-key"
+API_VERSION = re.compile(r"pub const API_VERSION: u32 = (\d+);")
 CLIENT_HOST = "conformance-download"
 CLIENT_CATEGORY = "music"
 CLIENT_IMAGE = "python:3.13-alpine@sha256:bf12ecc0bea3f171d55145dd02c78b5eeb09f30ee2ac9cc2b4c9e4e8f5e30741"
@@ -89,6 +95,7 @@ class Answering(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 http.server.ThreadingHTTPServer(("", 80), Answering).serve_forever()
 """
+STAND_INS = (CLIENT_IMAGE,)
 NOTES = {
     "refuses-without-the-key": "Asked without the plugin's key: the kit refuses it before the adapter is reached.",
     "identity-answers": "Who a fresh Lidarr says it is, and the release it runs.",
@@ -110,20 +117,33 @@ NOTES = {
 }
 
 
-def docker(*args: str, check: bool = True, given: str | None = None) -> str:
-    done = subprocess.run(["docker", *args], capture_output=True, text=True, check=False, input=given)
+def docker(*args: str, check: bool = True, given: str | None = None, handed: dict[str, str] | None = None) -> str:
+    done = subprocess.run(["docker", *args], capture_output=True, text=True, check=False, input=given,
+                          env=None if handed is None else os.environ | handed)
     if check and done.returncode != 0:
         raise RuntimeError(f"docker {args[0]}: {done.stderr.strip()}")
     return done.stdout.strip()
 
 
-def manifest() -> tuple[str, str, int, int, list[str]]:
-    """The plugin's own service: its id, its pinned image, the port it listens on, its API version and the media types it files."""
+def manifest() -> tuple[str, str, int, int, list[str], list[str]]:
+    """The plugin's own service: its id, its pinned image, the port it listens on, the API
+    version the adapter speaks, the media types it files, and the environment variables its
+    env hands the key lemonfiber mints."""
     read = tomllib.loads((ROOT / "plugin.toml").read_text(encoding="utf-8"))
     plugin = read["plugin"]["id"]
     upstream = next(one for one in read["service"] if one["id"] == plugin)
     return (plugin, f"{upstream['image']}@{upstream['digest']}", upstream["listens"],
-            upstream["api"]["version"], upstream["media_types"])
+            api_version(), upstream["media_types"],
+            [name for name, held in upstream.get("env", {}).items()
+             if isinstance(held, dict) and held.get("secret") == MINTED_KEY])
+
+
+def api_version() -> int:
+    """The version of the service's API the adapter speaks, as `src/adapter.rs` declares it."""
+    declared = API_VERSION.search((ROOT / "src" / "adapter.rs").read_text(encoding="utf-8"))
+    if declared is None:
+        raise RuntimeError("src/adapter.rs declares no API_VERSION")
+    return int(declared.group(1))
 
 
 def core_rev() -> str:
@@ -171,6 +191,15 @@ def recording(pinned: str, path: str, status: int, kind: str, body: str, note: s
         "request": {"method": "POST", "path": path, "accept": JSON},
         "response": response,
     }
+
+
+def pulled(image: str) -> None:
+    """`image` in the local store, pulled again while its registry refuses for a moment."""
+    for attempt in range(PULLS):
+        if docker("pull", "-q", image, check=False):
+            return
+        time.sleep(PULL_WAIT_S * (attempt + 1))
+    docker("pull", "-q", image)
 
 
 def owner_only(directory: pathlib.Path) -> None:
@@ -251,8 +280,8 @@ def pointed(value: object, pointer: str) -> object:
     return value
 
 
-def recorded_live(plugin: str, pinned: str, listens: int, version: int,
-                  files: list[str]) -> tuple[list[str], dict[tuple[str, str], dict]]:
+def recorded_live(plugin: str, pinned: str, listens: int, version: int, files: list[str],
+                  given: list[str]) -> tuple[list[str], dict[tuple[str, str], dict]]:
     """What the adapter speaks, and every case asked of it in front of a throwaway service."""
     name = f"{plugin}-record-{uuid.uuid4().hex[:8]}"
     inside, outside = f"{name}-inside", f"{name}-outside"
@@ -264,6 +293,8 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int,
         for directory in (upstream, data / DATA_FOLDER, adapter):
             directory.mkdir(parents=True)
         try:
+            for image in (pinned, *STAND_INS):
+                pulled(image)
             docker("network", "create", "--internal", inside)
             docker("network", "create", outside)
             docker("run", "-d", "--name", f"{name}-client", "--network", inside,
@@ -271,8 +302,9 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int,
                    CLIENT_IMAGE, "python3", "-c", CLIENT)
             docker("run", "-d", "--name", f"{name}-upstream", "--network", inside,
                    "--network-alias", plugin, "-e", f"PUID={os.getuid()}", "-e", f"PGID={os.getgid()}",
-                   "-e", "TZ=Etc/UTC", "-e", f"{plugin.upper()}__AUTH__APIKEY={api_key}",
-                   "-v", f"{upstream}:/config", "-v", f"{data}:/data", pinned)
+                   "-e", "TZ=Etc/UTC", *(flag for variable in given for flag in ("-e", variable)),
+                   "-v", f"{upstream}:/config", "-v", f"{data}:/data", pinned,
+                   handed=dict.fromkeys(given, api_key))
             waited("the service did not answer with the key minted for it",
                    lambda: in_service(f"{name}-upstream", listens, version, api_key, "GET",
                                       "/system/status") == "200")
@@ -374,8 +406,8 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="record again and compare with conformance/")
     checking = parser.parse_args().check
 
-    plugin, pinned, listens, version, files = manifest()
-    speaks, said = recorded_live(plugin, pinned, listens, version, files)
+    plugin, pinned, listens, version, files, given = manifest()
+    speaks, said = recorded_live(plugin, pinned, listens, version, files, given)
     faults = [fault for spoken in speaks for case in asked_of(spoken, files)
               if (fault := filed(said, spoken, case["case"], checking)) is not None]
     faults += [fault for spoken in speaks if (fault := left(said, spoken, checking)) is not None]

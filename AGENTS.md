@@ -27,7 +27,7 @@ change. `tests/conformance.rs` reads every recording with the core's own client.
 
 - **The plugin id is the service's id** (`ARCH-R266`). The container, the
   configuration directory, the settings and the journal keep their names.
-- **Its claims' and proofs' recordings sit under `recordings/lidarr/`**
+- **Its proofs' recordings sit under `recordings/lidarr/`**
   (`ARCH-R271`).
 - **Every service declares `reaches` and `asks_for`** (`ARCH-R270`).
 - **The reader is spec's `first-party-plugin` workflow's.** The one Python here
@@ -36,16 +36,18 @@ change. `tests/conformance.rs` reads every recording with the core's own client.
   `Cargo.toml` are the core's.
 - **What the Servarr adapters share lives in `adapter-kit-servarr`**
   (`REPO-R99`). Only what Lidarr alone answers is written here.
-- **The adapter never writes its credential.** lemonfiber writes `upstream.json`
-  into the adapter's configuration directory, holding the key Lidarr answers
-  to as `api_key`; the adapter reads it for every call and never logs it.
+- **The adapter never writes its credential.** lemonfiber mints the key Lidarr
+  answers to, hands it to Lidarr as `LIDARR__AUTH__APIKEY`, and writes it into the adapter's
+  `upstream.json` as `api_key`, as the adapter's `upstream` maps it
+  (`ARCH-R315`, `ARCH-R317`); the adapter reads it for every call and never logs
+  it.
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate and
   the one `adapter-kit-servarr` names at its own `rev` (`REPO-R100`).
-- **Moving Lidarr's digest** means recording every response and conformance
-  case again against the new image in the same change, moving `RELEASE` and
-  `DIGEST` in `src/adapter.rs` with it, and committing the `proofs.json` the
-  checks write.
+- **Moving Lidarr's digest** means recording every proof's response and
+  conformance case again against the new image in the same change, moving
+  `RELEASE` and `DIGEST` in `src/adapter.rs` with it, and committing the
+  `proofs.json` the checks write.
 
 ## Checks
 
