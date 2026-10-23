@@ -3,14 +3,15 @@
 use std::process::ExitCode;
 use std::sync::Arc;
 
-use adapter_kit_servarr::credential::Upstream;
+use adapter_kit_servarr::credential::API_KEY;
+use lemonfiber_adapter_kit::credential::Upstream;
+use lemonfiber_adapter_kit::settings::{asked, Asked, Settings};
+use lemonfiber_adapter_kit::web::Web;
 use lemonfiber_contract::adapter::about_path;
-use lidarr_adapter::settings::{asked, Asked, Settings};
-use lidarr_adapter::web::Web;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let outcome = match asked(std::env::args().skip(1)) {
+    let outcome = match asked(std::env::args().skip(1), lidarr_adapter::adapter::ADDRESS) {
         Ok(Asked::Serve(settings)) => serve(&settings).await,
         Ok(Asked::Health(settings)) => health(&settings).await,
         Err(why) => Err(why),
@@ -34,7 +35,7 @@ async fn serve(settings: &Settings) -> Result<(), String> {
     let lidarr = lidarr_adapter::adapter::lidarr(
         Arc::new(web),
         settings.upstream.clone(),
-        Arc::new(Upstream::in_directory(&settings.configuration)),
+        Arc::new(Upstream::in_directory(&settings.configuration, API_KEY)),
     );
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await

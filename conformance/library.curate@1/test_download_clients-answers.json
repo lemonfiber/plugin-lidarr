@@ -1,6 +1,6 @@
 {
   "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
-  "note": "Every client Lidarr tests: none, since the one it holds is switched off.",
+  "note": "Every client Lidarr tests: the one registered, which the stand-in answers.",
   "request": {
     "method": "POST",
     "path": "/lemonfiber/library.curate/v1/test_download_clients",
@@ -11,6 +11,12 @@
     "headers": {
       "content-type": "application/json"
     },
-    "json": []
+    "json": [
+      {
+        "id": "1",
+        "reachable": true,
+        "detail": null
+      }
+    ]
   }
 }

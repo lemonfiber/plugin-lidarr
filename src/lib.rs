@@ -4,5 +4,3 @@
 
 pub mod adapter;
 pub mod formats;
-pub mod settings;
-pub mod web;

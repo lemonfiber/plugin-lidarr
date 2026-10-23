@@ -9,18 +9,20 @@ adapter's answer to one case of that contract's `conformance.json` (ARCH-R217),
 asked with the case's own `asked`, its placeholders filled, in the order the
 contract lists them. It is taken against a throwaway Servarr service at the
 digest `plugin.toml` pins for the plugin's own service, on a network with no
-route off the host, so no answer depends on a catalogue, an indexer or a
-download client. The adapter runs from this repository's Dockerfile, as
+route off the host, so no answer depends on a catalogue or an indexer. The
+download client the cases register is a stand-in at the address they name,
+answering as SABnzbd answers, so Lidarr takes it and tests it without anything
+being downloaded. The adapter runs from this repository's Dockerfile, as
 lemonfiber runs it: the caller's uid, read-only, no capabilities, the key and
 the upstream credential owner-only in its configuration directory.
 
 This script stands where lemonfiber stands: it mints the service's API key as
 32 lowercase hex characters, hands it to the service through its environment,
-and writes it to the adapter's `upstream.json` beside `lemonfiber.key`. Before
-anything is asked, the service is given one download client, switched off so
-it is saved without being reached, so the cases that change a client have one
-to change. A run whose
-answers hold any credential writes nothing.
+and writes it to the adapter's `upstream.json` beside `lemonfiber.key`. The
+cases asked are every case bound to no media type and every one bound to a
+media type the service files, as `plugin.toml` declares them, and a recording
+left from a case no longer asked is removed. A run whose answers hold the key,
+the API key or a credential the run minted writes nothing.
 
     python3 .github/record.py            write conformance/
     python3 .github/record.py --check    record again and compare
@@ -61,48 +63,50 @@ MINTED = "minted"
 UPSTREAM = "upstream:"
 API_KEY = "api_key"
 DATA_FOLDER = "conformance"
-SEEDED_CLIENT = {
-    "enable": False,
-    "protocol": "usenet",
-    "name": "Seeded",
-    "implementation": "Sabnzbd",
-    "configContract": "SabnzbdSettings",
-    "priority": 1,
-    "fields": [
-        {"name": "host", "value": "sabnzbd"},
-        {"name": "port", "value": 8080},
-        {"name": "musicCategory", "value": "music"},
-    ],
+CLIENT_HOST = "conformance-download"
+CLIENT_CATEGORY = "music"
+CLIENT_IMAGE = "python:3.13-alpine@sha256:bf12ecc0bea3f171d55145dd02c78b5eeb09f30ee2ac9cc2b4c9e4e8f5e30741"
+CLIENT = """
+import http.server, json, os, urllib.parse
+CATEGORY = os.environ["CATEGORY"]
+SAID = {
+    "version": {"version": "4.5.1"},
+    "get_config": {"config": {"misc": {"complete_dir": "/downloads/complete", "pre_check": False,
+                                       "enable_tv_sorting": False, "enable_movie_sorting": False,
+                                       "enable_date_sorting": False},
+                              "categories": [{"name": name, "dir": ""} for name in ("*", CATEGORY)],
+                              "sorters": []}},
+    "queue": {"queue": {"slots": [], "paused": False}},
+    "history": {"history": {"slots": []}},
 }
+class Answering(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        mode = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("mode", [""])[0]
+        body = json.dumps(SAID.get(mode, {"status": True})).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body)
+http.server.ThreadingHTTPServer(("", 80), Answering).serve_forever()
+"""
 NOTES = {
     "refuses-without-the-key": "Asked without the plugin's key: the kit refuses it before the adapter is reached.",
     "identity-answers": "Who a fresh Lidarr says it is, and the release it runs.",
-    "register_download_client-answers": "A client spoken to as the case names it, which Lidarr files no client for: refused before Lidarr is asked.",
-    "download_clients-answers": "The one client the run gave Lidarr, by where it is reached and the category it files under.",
-    "update_download_client-answers": "A change to that client spoken to as the case names it: refused before Lidarr is asked.",
-    "set_client_field-answers": "One field of that client put back, the rest of it as Lidarr gave it.",
-    "test_download_clients-answers": "Every client Lidarr tests: none, since the one it holds is switched off.",
-    "register_root_folder-answers": "The folder the case names, taken as a root folder with the first metadata and quality profiles Lidarr holds.",
+    "register_download_client-answers": "A SABnzbd client as the case names it, which Lidarr tests against the stand-in and keeps.",
+    "download_clients-answers": "That client, by where it is reached and the category it files under.",
+    "update_download_client-answers": "That client written again as the case names it.",
+    "set_client_field-answers": "The case's field written on that client, the rest of it as Lidarr gave it.",
+    "test_download_clients-answers": "Every client Lidarr tests: the one registered, which the stand-in answers.",
+    "register_root_folder-answers-music": "The folder the case names, taken as a root folder with Lidarr's first metadata and quality profiles.",
     "root_folders-answers": "That folder, read back with the id Lidarr gave it.",
     "quality_profiles-answers": "The quality profiles a fresh Lidarr holds.",
-    "search_upgrades-answers": "A search for better releases of television, which a curator of music does not file: refused.",
     "hardlinks-answers": "Whether a fresh Lidarr imports by hard link: it does.",
     "set_hardlinks-answers": "Importing by hard link set, every other media-management setting kept.",
-    "records-answers": "The series it holds, which a curator of music does not hold: refused.",
-    "carry-answers": "A carried series, which a curator of music does not hold: refused.",
-    "lookup-answers": "A term looked up as television, which a curator of music does not file: refused.",
-    "add_plan-answers": "How it would add television, which it does not file: refused.",
-    "add-answers": "An add of television, which it does not file: refused.",
+    "records-answers-music": "The artists a fresh Lidarr holds, for carrying elsewhere: none.",
+    "carry-answers-music": "A carried artist whose record is empty: refused before Lidarr is asked.",
     "indexer_count-answers": "How many indexers a fresh Lidarr searches: none.",
     "queue-answers": "What a fresh Lidarr has queued: nothing.",
-    "probe_releases-answers": "What it would grab for television, which it does not file: refused.",
     "apply_music_format-answers": "Lossless applied to every quality profile Lidarr holds.",
-    "library-answers": "The television it holds, which it does not file: refused.",
-    "find_items-answers": "Television it holds by the case's term, which it does not file: refused.",
-    "item_history-answers": "What happened to a television item, which it does not file: refused.",
-    "item_queue-answers": "What it has queued for a television item, which it does not file: refused.",
-    "item_parts-answers": "The episodes of a series, which it does not file: refused.",
-    "stuck_items-answers": "Television stuck in its queue, which it does not file: refused.",
 }
 
 
@@ -113,12 +117,13 @@ def docker(*args: str, check: bool = True, given: str | None = None) -> str:
     return done.stdout.strip()
 
 
-def manifest() -> tuple[str, str, int, int]:
-    """The plugin's own service: its id, its pinned image, the port it listens on and its API version."""
+def manifest() -> tuple[str, str, int, int, list[str]]:
+    """The plugin's own service: its id, its pinned image, the port it listens on, its API version and the media types it files."""
     read = tomllib.loads((ROOT / "plugin.toml").read_text(encoding="utf-8"))
     plugin = read["plugin"]["id"]
     upstream = next(one for one in read["service"] if one["id"] == plugin)
-    return plugin, f"{upstream['image']}@{upstream['digest']}", upstream["listens"], upstream["api"]["version"]
+    return (plugin, f"{upstream['image']}@{upstream['digest']}", upstream["listens"],
+            upstream["api"]["version"], upstream["media_types"])
 
 
 def core_rev() -> str:
@@ -131,6 +136,11 @@ def published_cases(spoken: str) -> list[dict]:
     url = CONTRACTS.format(rev=core_rev(), capability=capability, major=major)
     with urllib.request.urlopen(url, timeout=ANSWER_S) as answer:
         return json.load(answer)["cases"]
+
+
+def asked_of(spoken: str, files: list[str]) -> list[dict]:
+    """The cases of `spoken` an upstream filing `files` is asked: unbound, or bound to one it files."""
+    return [case for case in published_cases(spoken) if case.get("media_type") in (None, *files)]
 
 
 def asked(base: str, path: str, key: str | None, body: dict | None = None) -> tuple[int, str, str]:
@@ -226,7 +236,6 @@ class Filling:
         found = pointed(self.answers[case], pointer)
         if not isinstance(found, str):
             raise RuntimeError(f"{case} answered no string at {pointer}")
-        self.made.append(found)
         return found
 
 
@@ -242,7 +251,8 @@ def pointed(value: object, pointer: str) -> object:
     return value
 
 
-def recorded_live(plugin: str, pinned: str, listens: int, version: int) -> tuple[list[str], dict[tuple[str, str], dict]]:
+def recorded_live(plugin: str, pinned: str, listens: int, version: int,
+                  files: list[str]) -> tuple[list[str], dict[tuple[str, str], dict]]:
     """What the adapter speaks, and every case asked of it in front of a throwaway service."""
     name = f"{plugin}-record-{uuid.uuid4().hex[:8]}"
     inside, outside = f"{name}-inside", f"{name}-outside"
@@ -256,6 +266,9 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int) -> tuple
         try:
             docker("network", "create", "--internal", inside)
             docker("network", "create", outside)
+            docker("run", "-d", "--name", f"{name}-client", "--network", inside,
+                   "--network-alias", CLIENT_HOST, "-e", f"CATEGORY={CLIENT_CATEGORY}",
+                   CLIENT_IMAGE, "python3", "-c", CLIENT)
             docker("run", "-d", "--name", f"{name}-upstream", "--network", inside,
                    "--network-alias", plugin, "-e", f"PUID={os.getuid()}", "-e", f"PGID={os.getgid()}",
                    "-e", "TZ=Etc/UTC", "-e", f"{plugin.upper()}__AUTH__APIKEY={api_key}",
@@ -263,12 +276,6 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int) -> tuple
             waited("the service did not answer with the key minted for it",
                    lambda: in_service(f"{name}-upstream", listens, version, api_key, "GET",
                                       "/system/status") == "200")
-            seeded = SEEDED_CLIENT | {"fields": [*SEEDED_CLIENT["fields"],
-                                                 {"name": "apiKey", "value": secrets.token_hex(16)}]}
-            status = in_service(f"{name}-upstream", listens, version, api_key, "POST",
-                                "/downloadclient", seeded)
-            if status not in ("200", "201"):
-                raise RuntimeError(f"the service took no download client to start from: {status}")
             (adapter / "lemonfiber.key").write_text(key, encoding="utf-8")
             (adapter / "upstream.json").write_text(json.dumps({API_KEY: api_key}), encoding="utf-8")
             owner_only(adapter)
@@ -284,7 +291,7 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int) -> tuple
             waited("the adapter was not ready", lambda: answering(base, key))
             speaks = json.loads(asked(base, "/lemonfiber/adapter/v1/about", key)[2])["speaks"]
             filling = Filling({API_KEY: api_key})
-            said = recorded(base, key, pinned, speaks, filling)
+            said = recorded(base, key, pinned, speaks, files, filling)
             secret = (key, api_key, *filling.made)
             leaked = [case for case, one in said.items()
                       if any(made in json.dumps(one) for made in secret if len(made) >= 16)]
@@ -292,7 +299,7 @@ def recorded_live(plugin: str, pinned: str, listens: int, version: int) -> tuple
                 raise RuntimeError(f"an answer holds a credential, so nothing is written: {leaked}")
             return speaks, said
         finally:
-            for container in (f"{name}-adapter", f"{name}-upstream"):
+            for container in (f"{name}-adapter", f"{name}-upstream", f"{name}-client"):
                 docker("rm", "-fv", container, check=False)
             docker("rmi", f"{name}:adapter", check=False)
             for network in (inside, outside):
@@ -309,13 +316,13 @@ def answering(base: str, key: str) -> bool:
     return status == 200 and body.strip() == "true"
 
 
-def recorded(base: str, key: str, pinned: str, speaks: list[str],
+def recorded(base: str, key: str, pinned: str, speaks: list[str], files: list[str],
              filling: Filling) -> dict[tuple[str, str], dict]:
-    """Every case of every contract spoken, asked in the order each contract lists them."""
+    """Every case of every contract spoken that the upstream is asked, in the order each contract lists them."""
     said: dict[tuple[str, str], dict] = {}
     for spoken in speaks:
         capability, major = spoken.split("@")
-        for case in published_cases(spoken):
+        for case in asked_of(spoken, files):
             path = operation_path(capability, major, case["operation"])
             status, kind, body = asked(base, path, key if case["keyed"] else None,
                                        filling.filled(case["asked"]))
@@ -351,15 +358,27 @@ def filed(said: dict[tuple[str, str], dict], spoken: str, case: str, checking: b
     return None
 
 
+def left(said: dict[tuple[str, str], dict], spoken: str, checking: bool) -> str | None:
+    """Recordings of cases no longer asked: removed, or named where they are only compared."""
+    held = RECORDINGS / spoken
+    stale = sorted(path for path in held.glob("*.json") if (spoken, path.stem) not in said) if held.is_dir() else []
+    if checking:
+        return f"{', '.join(path.name for path in stale)} in {held.relative_to(ROOT)} answer no case asked" if stale else None
+    for path in stale:
+        path.unlink()
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="record again and compare with conformance/")
     checking = parser.parse_args().check
 
-    plugin, pinned, listens, version = manifest()
-    speaks, said = recorded_live(plugin, pinned, listens, version)
-    faults = [fault for spoken in speaks for case in published_cases(spoken)
+    plugin, pinned, listens, version, files = manifest()
+    speaks, said = recorded_live(plugin, pinned, listens, version, files)
+    faults = [fault for spoken in speaks for case in asked_of(spoken, files)
               if (fault := filed(said, spoken, case["case"], checking)) is not None]
+    faults += [fault for spoken in speaks if (fault := left(said, spoken, checking)) is not None]
     for fault in faults:
         print(f"::error::{fault}")
     print(f"{len(said)} cases asked against {pinned}; {len(faults)} fault(s).")

@@ -1,19 +1,16 @@
 {
   "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
-  "note": "A client spoken to as the case names it, which Lidarr files no client for: refused before Lidarr is asked.",
+  "note": "A SABnzbd client as the case names it, which Lidarr tests against the stand-in and keeps.",
   "request": {
     "method": "POST",
     "path": "/lemonfiber/library.curate/v1/register_download_client",
     "accept": "application/json"
   },
   "response": {
-    "status": 500,
+    "status": 200,
     "headers": {
-      "content-type": "application/problem+json"
+      "content-type": "application/json"
     },
-    "json": {
-      "type": "unsupported",
-      "detail": "it files no download client spoken to as conformance"
-    }
+    "body_starts_with": "null"
   }
 }
