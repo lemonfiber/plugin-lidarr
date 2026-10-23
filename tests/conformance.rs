@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use lemonfiber_contract::client::Witness;
-use lemonfiber_contract::conformance::{cases, Expect};
+use lemonfiber_contract::conformance::{filed, Expect};
 use lemonfiber_contract::{Contracted, Failure};
 use lemonfiber_ports::http::{Http, Request, Response, Unreachable};
 
@@ -114,6 +114,19 @@ fn pinned() -> String {
     format!("{}@{}", text(&upstream, "image"), text(&upstream, "digest"))
 }
 
+fn files() -> Vec<String> {
+    upstream()
+        .get("media_types")
+        .and_then(toml::Value::as_array)
+        .map(|types| {
+            types
+                .iter()
+                .filter_map(|one| one.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn spoken() -> Vec<String> {
     lidarr_adapter::adapter::about().speaks
 }
@@ -141,9 +154,10 @@ fn replayed(answer: &Answer) -> Response {
 }
 
 #[tokio::test]
-async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_reads_it() {
+async fn every_case_its_upstream_is_asked_is_recorded_and_read_as_the_core_reads_it() {
     let pinned = pinned();
     let spoken = spoken();
+    let files = files();
     assert_eq!(spoken, ["library.curate@1"]);
     let mut faults = Vec::new();
     for capability in lemonfiber_contract::capabilities::all() {
@@ -151,7 +165,24 @@ async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_re
         if !spoken.contains(&named) {
             continue;
         }
-        for case in cases(&capability) {
+        let asked = filed(&capability, &files);
+        let held = std::fs::read_dir(root().join("conformance").join(&named))
+            .map(|entries| {
+                entries
+                    .filter_map(|entry| entry.ok()?.file_name().into_string().ok())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        faults.extend(
+            held.iter()
+                .filter(|name| {
+                    !asked
+                        .iter()
+                        .any(|case| **name == format!("{}.json", case.case))
+                })
+                .map(|name| format!("{named}/{name}: answers no case asked")),
+        );
+        for case in asked {
             let path = root()
                 .join("conformance")
                 .join(&named)

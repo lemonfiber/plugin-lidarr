@@ -1,19 +1,16 @@
 {
   "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
-  "note": "The series it holds, which a curator of music does not hold: refused.",
+  "note": "The artists a fresh Lidarr holds, for carrying elsewhere: none.",
   "request": {
     "method": "POST",
     "path": "/lemonfiber/library.curate/v1/records",
     "accept": "application/json"
   },
   "response": {
-    "status": 500,
+    "status": 200,
     "headers": {
-      "content-type": "application/problem+json"
+      "content-type": "application/json"
     },
-    "json": {
-      "type": "unsupported",
-      "detail": "it holds no series"
-    }
+    "json": []
   }
 }
