@@ -1,16 +1,16 @@
 {
-  "lemonfiber": "9666b9962d5345a4c861f3362ee6cdad89eb54e6",
+  "lemonfiber": "10f0bd484f3adc435d02eab68897e08e084477ca",
   "against": "recordings",
   "proofs": [
     {
-      "id": "library.curate/guarded",
-      "kind": "probe",
+      "id": "lidarr.answers",
+      "kind": "proof",
       "outcome": "passed",
       "detail": ""
     },
     {
-      "id": "library.curate/wanted",
-      "kind": "probe",
+      "id": "lidarr.guarded",
+      "kind": "proof",
       "outcome": "passed",
       "detail": ""
     }
