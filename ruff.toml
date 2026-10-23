@@ -1,0 +1,44 @@
+# The Python lint floor for this organisation.
+#
+# Four repositories carry a `ruff.toml` — `spec`, `lemonfiber`,
+# `lemonfiber-media-stack` and `brand` — and every one of them holds the same
+# `select` and `ignore` lists, because the scripts they lint are the same kind
+# of thing: the gates a merge is held to. Four identical lists that nothing
+# compares are four lists that agree until the first one is edited.
+#
+# `check_shared_files.py` reads this one and holds each copy to it. Not byte for
+# byte: a repository's own file says what its scripts are and why, in a preamble
+# that is different in each. What it may not do is select fewer rules or silence
+# one this keeps.
+#
+# The direction matters and it is asymmetric on purpose. Adding a rule raises
+# that repository's standard and costs nobody anything, so a copy may select
+# more. Adding an ignore lowers the standard everybody else is held to while
+# looking like a local decision, so a copy may not ignore what is not ignored
+# here.
+target-version = "py312"
+
+# Not what these scripts get wrong. They carry long paths, long digests, long
+# image references and long report lines, and one of them emits a markdown table
+# row that would say something different if it were broken.
+line-length = 110
+
+[lint]
+# Correctness first — `F` is the half that finds undefined names and unreachable
+# code, `B` the half that finds the mistakes that still run. `ISC` is here for
+# one shape in particular: two adjacent strings inside a list are one string,
+# and the difference between that and a missing comma is invisible. The rest
+# keep the scripts reading alike, which matters when they are maintained by
+# whoever is passing.
+select = ["E", "W", "F", "B", "I", "SIM", "UP", "RUF", "EXE", "FURB", "ISC"]
+
+ignore = [
+    # These scripts quote the repository's own prose back in their messages, and
+    # it uses typographic dashes and quotes deliberately.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # Width, as above. The rules worth having here find undefined names and
+    # mistakes that still run.
+    "E501",
+]
