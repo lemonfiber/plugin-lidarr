@@ -1,21 +1,12 @@
 {
   "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
   "note": "That folder, read back with the id Lidarr gave it.",
-  "request": {
-    "method": "POST",
-    "path": "/lemonfiber/library.curate/v1/root_folders",
-    "accept": "application/json"
-  },
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/root_folders", "accept": "application/json"},
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": {"content-type": "application/json"},
     "json": [
-      {
-        "id": "1",
-        "path": "/data/conformance"
-      }
+      {"id": "1", "path": "/data/conformance"}
     ]
   }
 }
