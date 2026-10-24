@@ -1,4 +1,4 @@
-# CodeQL static analysis of the Rust crate, the Python tooling and the workflows (Q-R53).
+# CodeQL static analysis of the Rust crate and the workflows (Q-R53).
 name: codeql
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [actions, python, rust]
+        language: [actions, rust]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
