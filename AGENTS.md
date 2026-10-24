@@ -18,10 +18,12 @@ publishes that image from every commit on `main` and from the train's tag. The
 [bundle contract](https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/bundle.md)
 says how the catalogue pins this repository and how lemonfiber carries it.
 
-`conformance/` holds one recording per case of the contract the adapter speaks,
-written by `.github/record.py` against a throwaway Lidarr at the digest
-`plugin.toml` pins. Re-record whenever the adapter's answers or that digest
-change. `tests/conformance.rs` reads every recording with the core's own client.
+`conformance/` holds one recording per case of the contract the adapter speaks.
+`lemonfiber plugin record .`, at the commit `targets.toml` names, writes them
+against a throwaway Lidarr at the digest `plugin.toml` pins and the adapter
+it pins; CI takes every recording again with the adapter built from this tree.
+Re-record whenever the adapter's answers or either digest change.
+`tests/conformance.rs` reads every recording with the core's own client.
 
 ## The rules you cannot break
 
@@ -30,8 +32,8 @@ change. `tests/conformance.rs` reads every recording with the core's own client.
 - **Its proofs' recordings sit under `recordings/lidarr/`**
   (`ARCH-R271`).
 - **Every service declares `reaches` and `asks_for`** (`ARCH-R270`).
-- **The reader is spec's `first-party-plugin` workflow's.** The one Python here
-  is `.github/record.py`, CI harness that records the conformance cases.
+- **The reader is spec's `first-party-plugin` workflow's,** and lemonfiber
+  records the recordings itself. There is no Python here.
 - **No `unwrap`, `expect`, `panic` or indexing** outside tests. The lints in
   `Cargo.toml` are the core's.
 - **What the Servarr adapters share lives in `adapter-kit-servarr`**

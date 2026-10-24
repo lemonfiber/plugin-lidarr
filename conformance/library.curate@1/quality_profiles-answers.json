@@ -1,29 +1,14 @@
 {
   "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
   "note": "The quality profiles a fresh Lidarr holds.",
-  "request": {
-    "method": "POST",
-    "path": "/lemonfiber/library.curate/v1/quality_profiles",
-    "accept": "application/json"
-  },
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/quality_profiles", "accept": "application/json"},
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": {"content-type": "application/json"},
     "json": [
-      {
-        "id": 1,
-        "name": "Any"
-      },
-      {
-        "id": 2,
-        "name": "Lossless"
-      },
-      {
-        "id": 3,
-        "name": "Standard"
-      }
+      {"id": 1, "name": "Any"},
+      {"id": 2, "name": "Lossless"},
+      {"id": 3, "name": "Standard"}
     ]
   }
 }

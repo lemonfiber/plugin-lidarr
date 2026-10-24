@@ -7,7 +7,7 @@
 #   plugin    plugin / what changed, plugin / plugin, recordings
 #   rust      fmt, clippy, test, coverage, deny, msrv
 #   adapter   adapter-image
-#   codeql    analyze (actions), analyze (python), analyze (rust), alerts / alerts
+#   codeql    analyze (actions), analyze (rust), alerts / alerts
 #   sonar     gate / gate
 #
 # Add a workflow to branch protection and it belongs here in the same change.
