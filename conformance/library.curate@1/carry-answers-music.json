@@ -5,6 +5,6 @@
   "response": {
     "status": 500,
     "headers": {"content-type": "application/problem+json"},
-    "json": {"detail": "a carried record of artists could not be read back", "type": "unsupported"}
+    "json": {"detail": "a carried record of artists could not be read back", "type": "refused"}
   }
 }
