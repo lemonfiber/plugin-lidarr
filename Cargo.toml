@@ -14,11 +14,11 @@ name = "lidarr-adapter"
 path = "src/main.rs"
 
 [dependencies]
-adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "7d92b0577da1dd308859db30849203fa1049aeb0" }
+adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "63b65aba16f03dd138c67666cc9f3f6a3070d670" }
 async-trait = "0.1"
-lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "aab38c1b02069557a5d4656109783a32fadcfda5" }
-lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "aab38c1b02069557a5d4656109783a32fadcfda5" }
-lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "aab38c1b02069557a5d4656109783a32fadcfda5" }
+lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "7c1274003776ddf7b87fde9d352c110ce3917846" }
+lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "7c1274003776ddf7b87fde9d352c110ce3917846" }
+lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "7c1274003776ddf7b87fde9d352c110ce3917846" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -27,8 +27,8 @@ tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "
 [dev-dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
-lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "aab38c1b02069557a5d4656109783a32fadcfda5" }
-lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "aab38c1b02069557a5d4656109783a32fadcfda5" }
+lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "7c1274003776ddf7b87fde9d352c110ce3917846" }
+lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "7c1274003776ddf7b87fde9d352c110ce3917846" }
 toml = "1.1"
 
 [lints.rust]
