@@ -54,6 +54,7 @@ id     = "upstream-key"
 of     = "lidarr"
 minted = true
 why    = "The key Lidarr answers its API to, which the adapter in front of it presents"
+carried_from = { file = "/config/config.xml", format = "xml", key = "Config.ApiKey" }
 
 [[proof]]
 id      = "lidarr.answers"
