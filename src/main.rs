@@ -58,7 +58,9 @@ async fn health(settings: &Settings) -> Result<(), String> {
         .rsplit_once(':')
         .map(|(_, port)| port)
         .ok_or_else(|| format!("{} names no port", settings.listen))?;
-    let answer = reqwest::Client::new()
+    let answer = lemonfiber_adapter_kit::web::client_builder()
+        .build()
+        .map_err(|why| format!("no client could be built: {why}"))?
         .get(format!("http://127.0.0.1:{port}{}", about_path()))
         .bearer_auth(key)
         .timeout(std::time::Duration::from_secs(3))
