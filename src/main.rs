@@ -42,7 +42,7 @@ async fn serve(settings: &Settings) -> Result<(), String> {
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;
     eprintln!("lidarr-adapter: answering on {}", settings.listen);
     lemonfiber_adapter_kit::serving(
-        lidarr_adapter::adapter::kit(key, Arc::new(lidarr)),
+        lidarr_adapter::adapter::kit(key, lidarr),
         listener,
         stopped(),
     )

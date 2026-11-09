@@ -10,15 +10,16 @@
 ## What this repo is
 
 Lidarr as a first-party lemonfiber plugin: `plugin.toml` and the adapter
-that speaks the `library.curate@1` contract in front of Lidarr. The adapter is the
-Rust crate at the root, built on `lemonfiber-adapter-kit` from the core and on
-`adapter-kit-servarr`, the Servarr client the Servarr adapters share, each at the
-commit `Cargo.toml` pins, into the image the `Dockerfile` builds. `release.yml`
+that speaks the `library.curate@1` and `music.curate@1` contracts in front of
+Lidarr. The adapter is the Rust crate at the root, built on
+`lemonfiber-adapter-kit` from the core, on `adapter-kit-servarr`, the Servarr client
+the Servarr adapters share, and on `adapter-kit-music`, which answers
+`music.curate`, each at the commit `Cargo.toml` pins, into the image the `Dockerfile` builds. `release.yml`
 publishes that image from every commit on `main` and from the train's tag. The
 [bundle contract](https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/bundle.md)
 says how the catalogue pins this repository and how lemonfiber carries it.
 
-`conformance/` holds one recording per case of the contract the adapter speaks.
+`conformance/` holds one recording per case of each contract the adapter speaks.
 `lemonfiber plugin record .`, at the commit `targets.toml` names, writes them
 against a throwaway Lidarr at the digest `plugin.toml` pins and the adapter
 it pins; CI takes every recording again with the adapter built from this tree.
@@ -45,7 +46,8 @@ Re-record whenever the adapter's answers or either digest change.
   it.
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate and
-  the one `adapter-kit-servarr` names at its own `rev` (`REPO-R100`).
+  the one `adapter-kit-servarr` and `adapter-kit-music` name at their own `rev`
+  (`REPO-R100`, `REPO-R105`).
 - **Moving Lidarr's digest** means recording every proof's response and
   conformance case again against the new image in the same change, moving
   `RELEASE` and `DIGEST` in `src/adapter.rs` with it, and committing the

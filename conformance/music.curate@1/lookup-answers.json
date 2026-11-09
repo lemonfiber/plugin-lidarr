@@ -1,0 +1,21 @@
+{
+  "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
+  "note": "The first page of albums Lidarr's catalogue finds for the case's words, none of them held, each named by its MusicBrainz release group.",
+  "request": {"method": "POST", "path": "/lemonfiber/music.curate/v1/lookup", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "found": [
+        {"by": "Susan Howe", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/cd7cd5fe-f9bf-45c7-88a8-8e7b4349b128/33065395838-1200.jpg", "format": null, "name": "Concordance", "reference": "c684a8bb-fa16-4e25-a096-5f1c6f654b87", "state": "may-ask", "year": 2021},
+        {"by": "DubDude", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/949955f9-b8be-4d14-99d0-fd0787dfe427/33814407559-1200.jpg", "format": null, "name": "Conformacion Del Ser", "reference": "31125672-63b6-44ef-946b-69d1bf0559eb", "state": "may-ask", "year": 2022},
+        {"by": "Weyron", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/bfd6dcdd-c7b7-4f71-8253-34f01a9576e0/34427141898-1200.jpg", "format": null, "name": "Carformance", "reference": "9c6480df-1515-45fd-a3f3-a140ba2485c3", "state": "may-ask", "year": 2021},
+        {"by": "U2", "cover": null, "format": null, "name": "Press Conferance Mexico 1992", "reference": "2a1bc9c9-dd36-303b-860a-012b9a173ec4", "state": "may-ask", "year": 1997},
+        {"by": "Trio Violon", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/bcebbee0-27e9-4580-8961-91dc8ffc4138/9724334057-1200.jpg", "format": null, "name": "La concordance des temps", "reference": "965411cf-1d5c-4c86-9ebe-22b44079f181", "state": "may-ask", "year": 1991},
+        {"by": "Frisque Concordance", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/c9dd2375-f17b-4a05-8272-e95f18f8beca/28320541464-1200.jpg", "format": null, "name": "Spellings", "reference": "0459b0db-439f-4a72-8aae-d6f46ca47cc8", "state": "may-ask", "year": 1993},
+        {"by": "The Concordance Model", "cover": "https://images.lidarr.audio/cache/https://coverartarchive.org/release/b248d5e4-a15d-4e18-8348-fa1510a780ae/34628252089-1200.jpg", "format": null, "name": "Incremental", "reference": "ac2ad2a9-8164-4570-9424-3fbcdc142b00", "state": "may-ask", "year": 2017}
+      ],
+      "next": null
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
+  "note": "The root folder just registered, the quality and metadata profiles a fresh Lidarr holds, and the units it answers for.",
+  "request": {"method": "POST", "path": "/lemonfiber/music.curate/v1/profiles", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {
+      "metadata": [
+        {"id": 1, "name": "Standard"},
+        {"id": 2, "name": "None"}
+      ],
+      "quality": [
+        {"id": 1, "name": "Any"},
+        {"id": 2, "name": "Lossless"},
+        {"id": 3, "name": "Standard"}
+      ],
+      "root_folders": ["/data/conformance"],
+      "units": ["album", "artist"]
+    }
+  }
+}
