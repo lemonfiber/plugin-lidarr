@@ -12,3 +12,7 @@ Servarr = "Servarr"
 komga = "komga"
 Komga = "Komga"
 gotson = "gotson"
+
+[files]
+# The titles Lidarr's catalogue answers a lookup with, as their artists spell them.
+extend-exclude = ["conformance/music.curate@1/lookup-answers.json"]
