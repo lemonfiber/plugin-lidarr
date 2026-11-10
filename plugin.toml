@@ -41,12 +41,13 @@ digest      = "sha256:bb4e46e7039c573deb34fe5147463ce37da7297878fd8c9c0dae0cc91c
 tag         = "main-e2228b231824"
 criticality = "core"
 reaches     = ""
-asks_for    = "Nothing beyond this machine. It answers lemonfiber's library.curate contract by calling Lidarr, beside it, with the key lemonfiber minted for it."
+asks_for    = "Nothing beyond this machine. It answers lemonfiber's library.curate and music.curate contracts by calling Lidarr, beside it, with the key lemonfiber minted for it."
 config_path = "/config"
 listens     = 8080
-speaks      = ["library.curate@1"]
+speaks      = ["library.curate@1", "music.curate@1"]
 fronts      = "lidarr"
-provides    = ["library.curate"]
+provides    = ["library.curate", "music.curate"]
+outside     = { "music.curate@1/lookup-answers" = "api.lidarr.audio" }
 upstream    = { api_key = { secret = "upstream-key" } }
 
 [[secret]]

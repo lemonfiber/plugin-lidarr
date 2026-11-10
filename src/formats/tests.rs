@@ -27,12 +27,13 @@ const PROFILES: &str = r#"[
     ]}
 ]"#;
 
-fn curator(fake: &Arc<Fake>) -> Curator<Formats> {
+fn curator(fake: &Arc<Fake>) -> Arc<Curator<Formats>> {
     lidarr(
         fake.clone(),
         BASE,
         Arc::new(('a'..='p').collect::<String>()),
     )
+    .library
 }
 
 fn sent(fake: &Fake, method: Method, fragment: &str) -> Vec<Request> {

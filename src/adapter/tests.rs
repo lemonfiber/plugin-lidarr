@@ -6,11 +6,7 @@ use lemonfiber_contract::adapter::{about_path, ready_path, About};
 use lemonfiber_fixtures::http::{Answer, Fake};
 use tower::ServiceExt as _;
 
-use adapter_kit_servarr::curator::Curator;
-
-use crate::formats::Formats;
-
-use super::{about, kit, lidarr, DIGEST, RELEASE, UPSTREAM};
+use super::{about, kit, lidarr, Lidarr, DIGEST, RELEASE, UPSTREAM};
 
 fn a_key() -> String {
     ('e'..='t').collect()
@@ -18,12 +14,12 @@ fn a_key() -> String {
 
 const BASE: &str = "http://lidarr:8686";
 
-fn curator(fake: &Arc<Fake>) -> Arc<Curator<Formats>> {
-    Arc::new(lidarr(
+fn curator(fake: &Arc<Fake>) -> Lidarr {
+    lidarr(
         fake.clone(),
         BASE,
         Arc::new(('a'..='p').collect::<String>()),
-    ))
+    )
 }
 
 async fn answered_by(
@@ -59,9 +55,9 @@ async fn answered(
 }
 
 #[test]
-fn it_speaks_the_curator_contract_and_names_the_release_its_recordings_were_taken_from() {
+fn it_speaks_the_curator_contracts_and_names_the_release_its_recordings_were_taken_from() {
     let said = about();
-    assert_eq!(said.speaks, ["library.curate@1"]);
+    assert_eq!(said.speaks, ["library.curate@1", "music.curate@1"]);
     assert_eq!(said.upstream, UPSTREAM);
     assert_eq!(
         said.releases
@@ -150,6 +146,30 @@ async fn a_capability_it_does_not_speak_is_refused_as_unknown() {
     )
     .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn music_is_looked_up_in_lidarr_s_catalogue_over_its_own_contract() {
+    let key = a_key();
+    let fake = Fake::always(Answer::reply(
+        200,
+        r#"[{"foreignAlbumId":"9162580e","title":"Abbey Road","artist":{"artistName":"The Beatles"}}]"#,
+    ));
+    let (status, body) = answered_by(
+        &fake,
+        "POST",
+        "/lemonfiber/music.curate/v1/lookup",
+        Some(&key),
+        r#"{"unit":"album","term":"abbey road"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let page: Option<serde_json::Value> = serde_json::from_slice(&body).ok();
+    assert_eq!(
+        page.and_then(|page| page.pointer("/found/0/reference").cloned()),
+        Some(serde_json::json!("9162580e"))
+    );
+    assert!(fake.asked_for(&format!("{BASE}/api/v1/album/lookup?term=abbey+road")));
 }
 
 #[tokio::test]
