@@ -220,3 +220,55 @@ async fn unqueue_and_grab_are_unsupported_and_open_to_no_key_but_the_plugin_s() 
         assert!(fake.requests().is_empty(), "{operation}");
     }
 }
+
+#[tokio::test]
+async fn an_album_is_followed_over_library_curate_by_lidarr_s_own_album_id() {
+    let key = a_key();
+    let fake = Fake::always(Answer::reply(
+        200,
+        r#"[{"id":7,"title":"Kind of Blue","releaseDate":"1959-08-17T00:00:00Z","monitored":true}]"#,
+    ));
+    let (status, body) = answered_by(
+        &fake,
+        "POST",
+        "/lemonfiber/library.curate/v1/find_items",
+        Some(&key),
+        r#"{"kind":"music","term":"kind of blue"}"#,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&body).ok(),
+        Some(serde_json::json!([
+            { "id": 7, "title": "Kind of Blue", "year": 1959, "monitored": true }
+        ]))
+    );
+    assert!(fake
+        .requests()
+        .iter()
+        .all(|asked| asked.url == format!("{BASE}/api/v1/album")));
+}
+
+#[tokio::test]
+async fn books_and_telling_the_core_are_unsupported_and_ask_lidarr_nothing() {
+    let key = a_key();
+    for (operation, body) in [
+        ("library", r#"{"kind":"books"}"#),
+        (
+            "events",
+            r#"{"address":"https://core.invalid","pin":"00","key":"00"}"#,
+        ),
+    ] {
+        let fake = Fake::always(Answer::reply(200, "{}"));
+        let path = format!("/lemonfiber/library.curate/v1/{operation}");
+        let (_, said) = answered_by(&fake, "POST", &path, Some(&key), body).await;
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&said)
+                .ok()
+                .and_then(|refusal| refusal.get("type").cloned()),
+            Some(serde_json::json!("unsupported")),
+            "{operation}"
+        );
+        assert!(fake.requests().is_empty(), "{operation}");
+    }
+}

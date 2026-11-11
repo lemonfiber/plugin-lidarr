@@ -14,12 +14,12 @@ name = "lidarr-adapter"
 path = "src/main.rs"
 
 [dependencies]
-adapter-kit-music = { git = "https://github.com/lemonfiber/adapter-kit-music", rev = "798ee1eff7407d988c7037c8ba43ccb0c7f7e363" }
-adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "82e6b0366478ceff4c618d5ffce9c6875bd6b11f" }
+adapter-kit-music = { git = "https://github.com/lemonfiber/adapter-kit-music", rev = "10350d5646a7b38c308a97ae424814baec382d00" }
+adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "d08194d447e3fcda015ee9e25cc94b438ddea8f5" }
 async-trait = "0.1"
-lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "6bb8fc8ef2f2f651d17f22ac78fbfffeb93ea958" }
-lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "6bb8fc8ef2f2f651d17f22ac78fbfffeb93ea958" }
-lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "6bb8fc8ef2f2f651d17f22ac78fbfffeb93ea958" }
+lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "99e5dbb0b7d13419663ff542c91bf441d63ef9d7" }
+lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "99e5dbb0b7d13419663ff542c91bf441d63ef9d7" }
+lemonfiber-ports = { git = "https://github.com/lemonfiber/lemonfiber", rev = "99e5dbb0b7d13419663ff542c91bf441d63ef9d7" }
 reqwest = { version = "0.13", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -28,8 +28,8 @@ tokio = { version = "1", features = ["fs", "macros", "net", "rt-multi-thread", "
 [dev-dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "tokio", "json"] }
 tower = { version = "0.5", default-features = false, features = ["util"] }
-lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "6bb8fc8ef2f2f651d17f22ac78fbfffeb93ea958" }
-lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "6bb8fc8ef2f2f651d17f22ac78fbfffeb93ea958" }
+lemonfiber-fixtures = { git = "https://github.com/lemonfiber/lemonfiber", rev = "99e5dbb0b7d13419663ff542c91bf441d63ef9d7" }
+lemonfiber-plugin = { git = "https://github.com/lemonfiber/lemonfiber", rev = "99e5dbb0b7d13419663ff542c91bf441d63ef9d7" }
 toml = "1.1"
 
 [lints.rust]

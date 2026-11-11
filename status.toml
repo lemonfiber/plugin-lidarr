@@ -15,4 +15,5 @@ requirement = [
   { id = "F14-R27", state = "partial", evidence = ["Dockerfile", ".github/workflows/adapter.yml"] },
   { id = "F14-R28", state = "partial", evidence = ["src/main.rs", "src/adapter.rs"] },
   { id = "ARCH-R395", state = "partial", evidence = ["src/adapter.rs", "tests/conformance.rs::every_case_its_upstream_is_asked_is_recorded_and_read_as_the_core_reads_it"] },
+  { id = "ARCH-R414", state = "partial", evidence = ["src/adapter.rs", "src/adapter/tests.rs::an_album_is_followed_over_library_curate_by_lidarr_s_own_album_id", "tests/conformance.rs::every_case_its_upstream_is_asked_is_recorded_and_read_as_the_core_reads_it"] },
 ]
