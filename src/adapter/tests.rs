@@ -195,7 +195,7 @@ async fn it_is_ready_while_lidarr_answers_its_ping() {
 }
 
 #[tokio::test]
-async fn unqueue_and_grab_are_unsupported_and_open_to_no_key_but_the_plugin_s() {
+async fn unqueue_and_grab_of_video_are_unsupported_and_open_to_no_key_but_the_plugin_s() {
     for (operation, body) in [
         ("unqueue", r#"{"kind":"tv","id":51,"blocklist":true}"#),
         ("grab", r#"{"kind":"movies","id":7,"release":"0000"}"#),
