@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/lidarr@sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0",
+  "note": "Telling the core what Lidarr did: unsupported, with the sentence naming why.",
+  "request": {"method": "POST", "path": "/lemonfiber/library.curate/v1/events", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "this adapter does not hear what its upstream did yet", "type": "unsupported"}
+  }
+}
