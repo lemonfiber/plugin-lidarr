@@ -85,12 +85,12 @@ expect  = { status = 401 }
 [[ask]]
 service    = "lidarr"
 capability = "download.usenet"
-native     = "sabnzbd"
+native     = ["sabnzbd", "nzbget"]
 
 [[ask]]
 service    = "lidarr"
 capability = "download.torrent"
-native     = "qbittorrent"
+native     = ["qbittorrent", "transmission"]
 
 [[ask]]
 service    = "lidarr"
