@@ -22,8 +22,7 @@ pub const UPSTREAM: &str = "Lidarr";
 /// The Lidarr release this adapter's recordings were taken from.
 pub const RELEASE: &str = "2.14.5.4836-ls9";
 
-/// The digest of the image that release's recordings were taken from.
-pub const DIGEST: &str = "sha256:5e1235d00b5d1c1f60ca0d472e554a6611aef41aa7b5b6d88260214bf4809af0";
+include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// What every failure is blamed on.
 pub const SERVICE: &str = "lidarr";
