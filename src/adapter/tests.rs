@@ -114,7 +114,7 @@ async fn an_operation_is_answered_from_what_lidarr_says() {
     let key = a_key();
     let fake = Fake::always(Answer::reply(
         200,
-        r#"{"appName":"Lidarr","version":"2.14.5"}"#,
+        r#"{"appName":"Lidarr","version":"3.1.6.5079"}"#,
     ));
     let (status, body) = answered_by(
         &fake,
@@ -127,7 +127,7 @@ async fn an_operation_is_answered_from_what_lidarr_says() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&body).ok(),
-        Some(serde_json::json!({ "name": "Lidarr", "version": "2.14.5" }))
+        Some(serde_json::json!({ "name": "Lidarr", "version": "3.1.6.5079" }))
     );
     assert!(fake
         .requests()

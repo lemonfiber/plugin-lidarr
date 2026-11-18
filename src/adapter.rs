@@ -19,9 +19,6 @@ pub const ADDRESS: &str = "http://lidarr:8686";
 /// The upstream this adapter fronts, as its project names itself.
 pub const UPSTREAM: &str = "Lidarr";
 
-/// The Lidarr release this adapter's recordings were taken from.
-pub const RELEASE: &str = "2.14.5.4836-ls9";
-
 include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// What every failure is blamed on.
