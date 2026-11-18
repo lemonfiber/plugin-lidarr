@@ -1,5 +1,5 @@
-//! The digest of the image the adapter fronts, read from `plugin.toml`, the one place
-//! it is pinned.
+//! The release and digest of the image the adapter fronts, read from `plugin.toml`, the
+//! one place they are pinned.
 
 use std::error::Error;
 use std::path::Path;
@@ -24,17 +24,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .find_map(|service| service.get("fronts").and_then(toml::Value::as_str))
         .ok_or("no service of plugin.toml fronts another")?;
-    let digest = services
+    let pinned = services
         .iter()
         .find(|service| service.get("id").and_then(toml::Value::as_str) == Some(fronted))
-        .and_then(|service| service.get("digest"))
+        .ok_or_else(|| format!("plugin.toml has no service {fronted}"))?;
+    let digest = pinned
+        .get("digest")
         .and_then(toml::Value::as_str)
         .ok_or_else(|| format!("plugin.toml pins no digest for {fronted}"))?;
+    let release = pinned
+        .get("tag")
+        .and_then(toml::Value::as_str)
+        .ok_or_else(|| format!("plugin.toml tags no release for {fronted}"))?;
     let out = std::env::var("OUT_DIR")?;
     std::fs::write(
         Path::new(&out).join(WRITTEN),
         format!(
-            "/// The digest of the image that release's recordings were taken from, as `plugin.toml` pins it.\npub const DIGEST: &str = {digest:?};\n"
+            "/// The release of the image the adapter fronts, as `plugin.toml` tags it.\npub const RELEASE: &str = {release:?};\n\n/// The digest of the image that release's recordings were taken from, as `plugin.toml` pins it.\npub const DIGEST: &str = {digest:?};\n"
         ),
     )?;
     Ok(())
