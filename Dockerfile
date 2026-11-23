@@ -1,7 +1,7 @@
 # The adapter's image: built from this repository, distroless, non-root, with no
 # shell and no package manager. Its health check is the binary asking itself.
 
-FROM rust:1.99.1-alpine3.22@sha256:731f64e16c12af70970d9a3655eecb1eecab4898352f09688a8e5ca2ab8b77c5 AS build
+FROM rust:1.100.0-alpine3.22@sha256:f8ddfd4b265d9a9e7fd7c36821af4a55771aee2ac3894294687a66c709319be9 AS build
 RUN apk add --no-cache musl-dev
 WORKDIR /src
 COPY Cargo.toml Cargo.lock build.rs plugin.toml ./
