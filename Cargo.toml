@@ -14,8 +14,8 @@ name = "lidarr-adapter"
 path = "src/main.rs"
 
 [dependencies]
-adapter-kit-music = { git = "https://github.com/lemonfiber/adapter-kit-music", rev = "52505b9118cea2ad888376323e1ad64781c85a63" }
-adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "71578363a3fe6584330afc45cfbba3b2ff25cfb5" }
+adapter-kit-music = { git = "https://github.com/lemonfiber/adapter-kit-music", rev = "a00c0ea7dfb0fec27b8185f50bf9a85e9fc19aba" }
+adapter-kit-servarr = { git = "https://github.com/lemonfiber/adapter-kit-servarr", rev = "fbe57258237544f2c1c3429dfaf063ef1cd41cfd" }
 async-trait = "0.1"
 lemonfiber-adapter-kit = { git = "https://github.com/lemonfiber/lemonfiber", rev = "98bd419bed917ea8b3569dea33d7482bcd16eb7c" }
 lemonfiber-contract = { git = "https://github.com/lemonfiber/lemonfiber", rev = "98bd419bed917ea8b3569dea33d7482bcd16eb7c" }
