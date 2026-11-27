@@ -11,14 +11,17 @@ The default bundle in
 repository by a revision and the digests of its manifest and its tree, and
 lemonfiber compiles that tree in.
 lemonfiber reaches Lidarr through the adapter this repository holds, which
-speaks lemonfiber's `library.curate` and `music.curate` contracts in front of it: a
+speaks lemonfiber's `indexer.pull`, `library.curate` and `music.curate` contracts
+in front of it: a
 Rust crate built on the core's adapter kit, on
 [adapter-kit-servarr](https://github.com/lemonfiber/adapter-kit-servarr) and on
 [adapter-kit-music](https://github.com/lemonfiber/adapter-kit-music), into the
 image `ghcr.io/lemonfiber/lidarr-adapter`, published from every commit on `main`
 and from each tag the release train cuts. lemonfiber mints the key
 Lidarr answers its API to, hands it to Lidarr as `LIDARR__AUTH__APIKEY` and to the
-adapter in its `upstream.json`, and to nothing else.
+adapter in its `upstream.json`, and to nothing else. Told about an NZBHydra2 over
+`indexer.pull`, the adapter adds it to Lidarr as a Newznab indexer with the key
+lemonfiber minted for NZBHydra2.
 
 ## What is here
 
@@ -27,6 +30,7 @@ adapter in its `upstream.json`, and to nothing else.
 | `plugin.toml` | The part's manifest |
 | `recordings/lidarr/` | The responses its proofs are held to |
 | `src/` | The adapter |
+| `conformance/indexer.pull@1/` | The adapter's answer to each `indexer.pull` conformance case, in front of the pinned Lidarr |
 | `conformance/library.curate@1/` | The adapter's answer to each `library.curate` conformance case, in front of the pinned Lidarr |
 | `conformance/music.curate@1/` | The adapter's answer to each `music.curate` conformance case, in front of the pinned Lidarr |
 | `Dockerfile` | The adapter's image |

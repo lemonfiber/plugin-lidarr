@@ -57,7 +57,10 @@ async fn answered(
 #[test]
 fn it_speaks_the_curator_contracts_and_names_the_release_its_recordings_were_taken_from() {
     let said = about();
-    assert_eq!(said.speaks, ["library.curate@1", "music.curate@1"]);
+    assert_eq!(
+        said.speaks,
+        ["indexer.pull@1", "library.curate@1", "music.curate@1"]
+    );
     assert_eq!(said.upstream, UPSTREAM);
     assert_eq!(
         said.releases
@@ -133,6 +136,19 @@ async fn an_operation_is_answered_from_what_lidarr_says() {
         .requests()
         .iter()
         .all(|asked| asked.url == format!("{BASE}/api/v1/system/status")));
+}
+
+#[tokio::test]
+async fn indexer_pull_is_served_and_asks_nothing_of_lidarr_to_pull_again() {
+    let key = a_key();
+    let (status, body) =
+        answered("POST", "/lemonfiber/indexer.pull/v1/pull", Some(&key), "{}").await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    let refusal: Option<serde_json::Value> = serde_json::from_slice(&body).ok();
+    assert_eq!(
+        refusal.and_then(|refusal| refusal.get("type").cloned()),
+        Some(serde_json::json!("unsupported"))
+    );
 }
 
 #[tokio::test]

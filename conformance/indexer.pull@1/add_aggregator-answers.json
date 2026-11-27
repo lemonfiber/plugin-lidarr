@@ -1,0 +1,10 @@
+{
+  "recorded_from": "lscr.io/linuxserver/lidarr@sha256:8fb40ada166dd1880cb1b166df5bcbb081107523f20ab60df05c313e2052a467",
+  "note": "The aggregator the case names, in the servarr API: Lidarr reads only NZBHydra2 as an aggregator, so it answers unsupported and nothing is asked of Lidarr.",
+  "request": {"method": "POST", "path": "/lemonfiber/indexer.pull/v1/add_aggregator", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "it pulls its indexers from NZBHydra2 alone, read as a Newznab indexer", "type": "unsupported"}
+  }
+}

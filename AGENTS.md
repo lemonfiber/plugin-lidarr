@@ -10,8 +10,8 @@
 ## What this repo is
 
 Lidarr as a first-party lemonfiber plugin: `plugin.toml` and the adapter
-that speaks the `library.curate@1` and `music.curate@1` contracts in front of
-Lidarr. The adapter is the Rust crate at the root, built on
+that speaks the `indexer.pull@1`, `library.curate@1` and `music.curate@1` contracts
+in front of Lidarr. The adapter is the Rust crate at the root, built on
 `lemonfiber-adapter-kit` from the core, on `adapter-kit-servarr`, the Servarr client
 the Servarr adapters share, and on `adapter-kit-music`, which answers
 `music.curate`, each at the commit `Cargo.toml` pins, into the image the `Dockerfile` builds. `release.yml`

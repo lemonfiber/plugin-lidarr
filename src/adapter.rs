@@ -8,7 +8,7 @@ use adapter_kit_servarr::curator::{Curator, Files};
 use lemonfiber_adapter_kit::credential::Holding;
 use lemonfiber_adapter_kit::{Kit, Readiness};
 use lemonfiber_contract::adapter::{About, Release};
-use lemonfiber_contract::capabilities::{library, music};
+use lemonfiber_contract::capabilities::{indexer, library, music};
 use lemonfiber_ports::http::Http;
 
 use crate::formats::Formats;
@@ -32,6 +32,7 @@ pub const API_VERSION: u32 = 1;
 pub fn about() -> About {
     About {
         speaks: vec![
+            lemonfiber_contract::spoken(indexer::pull::CAPABILITY, indexer::pull::MAJOR),
             lemonfiber_contract::spoken(library::curate::CAPABILITY, library::curate::MAJOR),
             lemonfiber_contract::spoken(music::curate::CAPABILITY, music::curate::MAJOR),
         ],
@@ -83,6 +84,7 @@ pub fn kit(key: String, lidarr: Lidarr) -> Kit {
     });
     Kit::new(key, about())
         .ready_when(ready)
+        .serving(indexer::pull::served(Arc::clone(&lidarr.library)))
         .serving(library::curate::served(lidarr.library))
         .serving(music::curate::served(lidarr.music))
 }
